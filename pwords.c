@@ -29,7 +29,7 @@ insert_word( dict_t *d, char *word ) {
   
   //   Insert word into dict or increment count if already there
   //   return pointer to the updated dict
-  pthread_t pth;
+  
   dict_t *nd;
   dict_t *pd = NULL;		// prior to insertion point 
   dict_t *di = d;		// following insertion point
@@ -42,9 +42,8 @@ insert_word( dict_t *d, char *word ) {
     pd = di;			// advance ptr pair
     di = di->next;
   }
-  pthread_create(&pth, NULL, make_dict, word);	
-    pthread_exit(NULL);		// not found, make entry 
-  nd->next = di;	// entry bigger than word or tail 
+  nd = make_dict(word);		// not found, make entry 
+  nd->next = di;		// entry bigger than word or tail 
   if (pd) {
     pd->next = nd;
     return d;			// insert beond head 
@@ -76,22 +75,26 @@ get_word( char *buf, int n, FILE *infile) {
 }
 
 #define MAXWORD 1024
-dict_t *
+void *
 words( FILE *infile ) {
-  pthread_mutex_t mutex;
+  pthread_mutex_t mutex1;
+  pthread_mutex_t mutex2;
   dict_t *wd = NULL;
-  char wordbuf[MAXWORD];
-  while( get_word( wordbuf, MAXWORD, infile ) ) {
-    pthread_mutex_lock (&mutex);
+  char wordbuf[MAXWORD]; 
+  while( get_word( wordbuf, MAXWORD, infile )) {
+    pthread_mutex_lock (&mutex2);
     wd = insert_word(wd, wordbuf); // add to dict
-    pthread_mutex_unlock (&mutex);
+    pthread_mutex_unlock (&mutex2);
   }
-  return wd;
+  pthread_exit(wd);
 }
 
 int
 main( int argc, char *argv[] ) {
-  pthread_t pth;
+  int NTHREADS = 4;
+  pthread_t pth[NTHREADS];
+  void *wd;
+  int i, j;
   dict_t *d = NULL;
   FILE *infile = stdin;
   if (argc >= 2) {
@@ -101,9 +104,12 @@ main( int argc, char *argv[] ) {
     printf("Unable to open %s\n",argv[1]);
     exit( EXIT_FAILURE );
   }
-  d = words( infile );
-  pthread_create(&pth, NULL, print_dict, d);
-  pthread_exit(NULL);
+  for(i = 0; i<NTHREADS; i++) {
+  pthread_create(&pth[i], NULL, words, infile);
+  pthread_join(pth[i], &wd);
+  }
+  print_dict( wd );
   fclose( infile );
 }
+
 
