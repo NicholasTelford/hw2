@@ -81,9 +81,13 @@ words( FILE *infile ) {
   pthread_mutex_t mutex2;
   dict_t *wd = NULL;
   char wordbuf[MAXWORD]; 
-  while( get_word( wordbuf, MAXWORD, infile )) {
-    pthread_mutex_lock (&mutex2);
+  int x = get_word( wordbuf, MAXWORD, infile);;
+  while( x ) {
+    pthread_mutex_lock (&mutex1);
     wd = insert_word(wd, wordbuf); // add to dict
+    pthread_mutex_unlock (&mutex1);
+    pthread_mutex_lock (&mutex2);
+    x = get_word( wordbuf, MAXWORD, infile);
     pthread_mutex_unlock (&mutex2);
   }
   pthread_exit(wd);
@@ -94,6 +98,7 @@ main( int argc, char *argv[] ) {
   int NTHREADS = 4;
   pthread_t pth[NTHREADS];
   void *wd;
+  void *dc[4];
   int i, j;
   dict_t *d = NULL;
   FILE *infile = stdin;
@@ -105,10 +110,13 @@ main( int argc, char *argv[] ) {
     exit( EXIT_FAILURE );
   }
   for(i = 0; i<NTHREADS; i++) {
-  pthread_create(&pth[i], NULL, words, infile);
-  pthread_join(pth[i], &wd);
+    pthread_create(&pth[i], NULL, words, infile);
+    pthread_join(pth[i], &wd);
+    dc[i] = wd;
   }
-  print_dict( wd );
+  for(j = 0; j<NTHREADS; j++){
+  print_dict( dc[j] );
+  }
   fclose( infile );
 }
 
