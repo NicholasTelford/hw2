@@ -113,6 +113,7 @@ main( int argc, char *argv[] ) {
     pthread_create(&pth[i], NULL, words, infile);
     pthread_join(pth[i], &wd);
     dc[i] = wd;
+
   }
   for(j = 0; j<NTHREADS; j++){
   print_dict( dc[j] );

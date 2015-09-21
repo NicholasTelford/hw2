@@ -86,8 +86,9 @@ words( FILE *infile ) {
     pthread_mutex_lock (&mutex1);
     wd = insert_word(wd, wordbuf); // add to dict
     pthread_mutex_unlock (&mutex1);
+    pthread_mutex_lock (&mutex2);
     x = get_word( wordbuf, MAXWORD, infile);
-    
+    pthread_mutex_unlock (&mutex2);
   }
   pthread_exit(wd);
 }
